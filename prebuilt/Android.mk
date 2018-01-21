@@ -25,8 +25,13 @@ else
 	    ifneq ($(wildcard external/zip/Android.mk),)
                 RELINK_SOURCE_FILES += $(TARGET_OUT_OPTIONAL_EXECUTABLES)/zip
 	    endif
-	    ifneq ($(wildcard external/unzip/Android.mk),)
-                RELINK_SOURCE_FILES += $(TARGET_OUT_OPTIONAL_EXECUTABLES)/unzip
+	    ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 27; echo $$?),0)
+                # system/core/libziparchive provides unzip
+                RELINK_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/unzip
+	    else
+		ifneq ($(wildcard external/unzip/Android.mk),)
+		    RELINK_SOURCE_FILES += $(TARGET_OUT_OPTIONAL_EXECUTABLES)/unzip
+		endif
 	    endif
 	endif
 endif
