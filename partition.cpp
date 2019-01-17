@@ -2244,9 +2244,11 @@ bool TWPartition::Wipe_F2FS() {
 		string size_str = to_string(dev_sz / 4096);
 
 		gui_msg(Msg("formatting_using=Formatting {1} using {2}...")(Display_Name)("mkfs.f2fs"));
-		command = "mkfs.f2fs -d1 -f";
+		command = "mkfs.f2fs";
 #ifdef OREO_MR1_F2FS
-		command += " -O encrypt -O quota -w 4096";
+		command += " -g android";
+#else
+		command += " -d1 -f";
 #endif
 		command += " " + Actual_Block_Device + " " + size_str;
 		LOGINFO("mkfs.f2fs command: %s\n", command.c_str());
