@@ -2296,7 +2296,7 @@ bool TWPartition::Wipe_F2FS() {
 
 			char dev_sz_str[48];
 			sprintf(dev_sz_str, "%llu", (dev_sz / 4096));
-			command = "mkfs.f2fs -d1 -f -O encrypt -O quota -O verity -w 4096 " + Actual_Block_Device + " " + dev_sz_str;
+			command = "mkfs.f2fs -g android " + Actual_Block_Device + " " + dev_sz_str;
 			if (TWFunc::Path_Exists("/sbin/sload.f2fs")) {
 				command += " && sload.f2fs -t /data " + Actual_Block_Device;
 			}
