@@ -25,13 +25,8 @@ else
 	    ifneq ($(wildcard external/zip/Android.mk),)
                 RELINK_SOURCE_FILES += $(TARGET_OUT_OPTIONAL_EXECUTABLES)/zip
 	    endif
-	    ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 27; echo $$?),0)
-                # system/core/libziparchive provides unzip
-                RELINK_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/unzip
-	    else
-		ifneq ($(wildcard external/unzip/Android.mk),)
-		    RELINK_SOURCE_FILES += $(TARGET_OUT_OPTIONAL_EXECUTABLES)/unzip
-		endif
+	    ifneq ($(wildcard external/unzip/Android.mk),)
+                RELINK_SOURCE_FILES += $(TARGET_OUT_OPTIONAL_EXECUTABLES)/unzip
 	    endif
 	endif
 endif
@@ -261,7 +256,6 @@ ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
         RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libf2fs.so
     else ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26; echo $$?),0)
         RELINK_SOURCE_FILES += $(TARGET_RECOVERY_ROOT_OUT)/sbin/mkfs.f2fs
-        RELINK_SOURCE_FILES += $(TARGET_RECOVERY_ROOT_OUT)/sbin/sload.f2fs
     else ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 24; echo $$?),0)
         RELINK_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/mkfs.f2fs
         RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libf2fs.so
