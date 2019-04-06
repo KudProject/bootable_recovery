@@ -920,7 +920,12 @@ void DataManager::SetDefaultValues()
   #endif
 #endif
 
-        mData.SetValue("tw_enable_adb_backup", "0");
+	mData.SetValue("tw_enable_adb_backup", "0");
+
+	if (TWFunc::Path_Exists("/sbin/magiskboot"))
+		mConst.SetValue("tw_has_repack_tools", "1");
+	else
+		mConst.SetValue("tw_has_repack_tools", "0");
 
 	pthread_mutex_unlock(&m_valuesLock);
 }
@@ -1047,6 +1052,11 @@ void DataManager::Output_Version(void)
 	char version[255];
 
 	std::string cacheDir = TWFunc::get_cache_dir();
+	if (cacheDir.empty()) {
+		LOGINFO("Unable to find cache directory\n");
+		return;
+	}
+
 	std::string recoveryCacheDir = cacheDir + "recovery/";
 
 	if (cacheDir == NON_AB_CACHE_DIR) {
@@ -1057,7 +1067,7 @@ void DataManager::Output_Version(void)
 	}
 	if (!TWFunc::Path_Exists(recoveryCacheDir)) {
 		LOGINFO("Recreating %s folder.\n", recoveryCacheDir.c_str());
-		if (mkdir(recoveryCacheDir.c_str(), S_IRWXU | S_IRWXG | S_IWGRP | S_IXGRP) != 0) {
+		if (!TWFunc::Create_Dir_Recursive(recoveryCacheDir.c_str(), S_IRWXU | S_IRWXG | S_IWGRP | S_IXGRP, 0, 0)) {
 			LOGERR("DataManager::Output_Version -- Unable to make %s: %s\n", recoveryCacheDir.c_str(), strerror(errno));
 			return;
 		}
