@@ -514,7 +514,7 @@ ifeq ($(shell test $(CM_PLATFORM_SDK_VERSION) -ge 3; echo $$?),0)
         fsck.f2fs \
         mkfs.f2fs
 endif
-ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 28; echo $$?),0)
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 27; echo $$?),0)
     LOCAL_REQUIRED_MODULES += sload.f2fs
 endif
 endif
