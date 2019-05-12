@@ -21,7 +21,15 @@ else
     RELINK_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/sh
     RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libcrypto.so
     ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 23; echo $$?),0)
+        RELINK_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/grep
+        LOCAL_POST_INSTALL_CMD += $(hide) if [ -e "$(TARGET_RECOVERY_ROOT_OUT)/sbin/egrep" ]; then \
+                                    rm $(TARGET_RECOVERY_ROOT_OUT)/sbin/egrep; fi; ln -sr $(TARGET_RECOVERY_ROOT_OUT)/sbin/grep $(TARGET_RECOVERY_ROOT_OUT)/sbin/egrep; \
+                                    if [ -e "$(TARGET_RECOVERY_ROOT_OUT)/sbin/fgrep" ]; then \
+                                    rm $(TARGET_RECOVERY_ROOT_OUT)/sbin/fgrep; fi; ln -sr $(TARGET_RECOVERY_ROOT_OUT)/sbin/grep $(TARGET_RECOVERY_ROOT_OUT)/sbin/fgrep;
         RELINK_SOURCE_FILES += $(TARGET_RECOVERY_ROOT_OUT)/sbin/toybox
+        ifeq ($(shell test $(PLATFORM_SDK_VERSION) -gt 23; echo $$?),0)
+            RELINK_SOURCE_FILES += $(TARGET_RECOVERY_ROOT_OUT)/sbin/dd
+        endif
         ifneq ($(wildcard external/zip/Android.mk),)
             RELINK_SOURCE_FILES += $(TARGET_OUT_OPTIONAL_EXECUTABLES)/zip
         endif
@@ -33,6 +41,9 @@ else
             ifneq ($(wildcard external/unzip/Android.mk),)
                 RELINK_SOURCE_FILES += $(TARGET_OUT_OPTIONAL_EXECUTABLES)/unzip
             endif
+        endif
+        ifneq ($(wildcard external/one-true-awk/Android.bp),)
+            RELINK_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/awk
         endif
     endif
 endif
@@ -312,7 +323,11 @@ ifeq ($(shell test $(PLATFORM_SDK_VERSION) -gt 22; echo $$?),0)
     RELINK_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/fsck.ntfs
     RELINK_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/mkfs.ntfs
     RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libntfs-3g.so
-    RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libfuse.so
+    ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 28; echo $$?),0)
+        RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libfuse-lite.so
+    else
+        RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libfuse.so
+    endif
 else
     RELINK_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/ntfs-3g
     RELINK_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/ntfsfix
@@ -529,12 +544,11 @@ endif
 ifeq ($(TW_USE_TOOLBOX), true)
     include $(CLEAR_VARS)
     LOCAL_MODULE := mkshrc_twrp
+    LOCAL_MODULE_STEM := mkshrc
     LOCAL_MODULE_TAGS := eng
     LOCAL_MODULE_CLASS := ETC
     LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/etc
     LOCAL_SRC_FILES := $(LOCAL_MODULE)
-    LOCAL_POST_INSTALL_CMD := \
-        $(hide) mv $(TARGET_RECOVERY_ROOT_OUT)/etc/mkshrc_twrp $(TARGET_RECOVERY_ROOT_OUT)/etc/mkshrc
     include $(BUILD_PREBUILT)
 endif
 
