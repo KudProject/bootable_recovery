@@ -690,6 +690,7 @@ bool TWPartitionManager::Backup_Partition(PartitionSettings *part_settings) {
 					}
 					sync();
 					sync();
+					string Full_Filename = part_settings->Backup_Folder + "/" + part_settings->Part->Backup_FileName;
 					if (!part_settings->adbbackup && part_settings->generate_digest) {
 						if (!twrpDigestDriver::Make_Digest(Full_Filename)) {
 							goto backup_error;
@@ -1550,6 +1551,7 @@ void TWPartitionManager::Update_System_Details(void) {
 			if ((*iter)->Mount_Point == Get_Android_Root_Path()) {
 				int backup_display_size = (int)((*iter)->Backup_Size / 1048576LLU);
 				DataManager::SetValue(TW_BACKUP_SYSTEM_SIZE, backup_display_size);
+				TWFunc::Is_TWRP_App_In_System();
 			} else if ((*iter)->Mount_Point == "/data" || (*iter)->Mount_Point == "/datadata") {
 				data_size += (int)((*iter)->Backup_Size / 1048576LLU);
 			} else if ((*iter)->Mount_Point == "/cache") {
@@ -3154,6 +3156,37 @@ bool TWPartitionManager::Repack_Images(const std::string& Target_Image, const st
 	}
 	DataManager::SetProgress(1);
 	TWFunc::removeDir(REPACK_ORIG_DIR, false);
+	if (part->SlotSelect && Repack_Options.Type == REPLACE_RAMDISK) {
+		LOGINFO("Switching slots to flash ramdisk to both partitions\n");
+		string Current_Slot = Get_Active_Slot_Display();
+		if (Current_Slot == "A")
+			Set_Active_Slot("B");
+		else
+			Set_Active_Slot("A");
+		DataManager::SetProgress(.25);
+		if (!PartitionManager.Prepare_Repack(part, REPACK_ORIG_DIR, Repack_Options.Backup_First, gui_lookup("repack", "Repack")))
+			return false;
+		if (TWFunc::copy_file(REPACK_NEW_DIR "ramdisk.cpio", REPACK_ORIG_DIR "ramdisk.cpio", 0644)) {
+			LOGERR("Failed to copy ramdisk\n");
+			return false;
+		}
+		path = REPACK_ORIG_DIR;
+		command = "cd " + path + " && /sbin/magiskboot --repack " + path + "boot.img";
+		if (TWFunc::Exec_Cmd(command) != 0) {
+			gui_msg(Msg(msg::kError, "repack_error=Error repacking image."));
+			return false;
+		}
+		DataManager::SetProgress(.75);
+		std::string file = "new-boot.img";
+		DataManager::SetValue("tw_flash_partition", "/boot;");
+		if (!PartitionManager.Flash_Image(path, file)) {
+			LOGINFO("Error flashing new image\n");
+			return false;
+		}
+		DataManager::SetProgress(1);
+		TWFunc::removeDir(REPACK_ORIG_DIR, false);
+		Set_Active_Slot(Current_Slot);
+	}
 	TWFunc::removeDir(REPACK_NEW_DIR, false);
 	return true;
 }
