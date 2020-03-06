@@ -669,7 +669,7 @@ void TWPartition::Setup_Data_Partition(bool Display_Error) {
 			LOGINFO("Trying wrapped key.\n");
 			property_set("fbe.data.wrappedkey", "true");
 				if (!Decrypt_FBE_DE()) {
-					LOGERR("Unable to decrypt FBE device\n");
+					LOGINFO("Unable to decrypt device\n");
 				}
 		}
 	}
@@ -1137,6 +1137,7 @@ void TWPartition::Setup_Data_Media() {
 		DataManager::SetValue("tw_has_internal", 1);
 		DataManager::SetValue("tw_has_data_media", 1);
 		backup_exclusions.add_absolute_dir("/data/data/com.google.android.music/files");
+		backup_exclusions.add_absolute_dir("/data/per_boot"); // DJ9,14Jan2020 - exclude this dir to prevent "error 255" on AOSP ROMs that create and lock it
 		wipe_exclusions.add_absolute_dir(Mount_Point + "/misc/vold"); // adopted storage keys
 		ExcludeAll(Mount_Point + "/.layout_version");
 		ExcludeAll(Mount_Point + "/system/storage.xml");
