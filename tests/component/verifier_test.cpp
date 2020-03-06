@@ -41,7 +41,7 @@ class VerifierTest : public testing::TestWithParam<std::vector<std::string>> {
     std::vector<std::string> args = GetParam();
     std::string package = from_testdata_base(args[0]);
     if (!memmap.MapFile(package)) {
-      FAIL() << "Failed to mmap " << package << ": " << strerror(errno) << "\n";
+      FAIL() << "Failed to mmap " << package << ": " << strerror(errno) << std::endl;
     }
 
     for (auto it = ++args.cbegin(); it != args.cend(); ++it) {

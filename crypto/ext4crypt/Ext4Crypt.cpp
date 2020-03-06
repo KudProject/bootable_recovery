@@ -163,7 +163,7 @@ static std::string keyname(const std::string& raw_ref) {
     for (auto i : raw_ref) {
         o << std::hex << std::setw(2) << std::setfill('0') << (int)i;
     }
-    LOG(INFO) << "keyname is " << o.str() << "\n";
+    LOG(INFO) << "keyname is " << o.str() << std::endl;
     return o.str();
 }
 
@@ -189,21 +189,21 @@ static bool install_key(const std::string& key, std::string* raw_ref) {
     key_serial_t key_id =
         add_key("logon", ref.c_str(), (void*)&ext4_key, sizeof(ext4_key), device_keyring);
     if (key_id == -1) {
-        PLOG(ERROR) << "Failed to insert key into keyring " << device_keyring << "\n";
+        PLOG(ERROR) << "Failed to insert key into keyring " << device_keyring << std::endl;
         return false;
     }
     LOG(DEBUG) << "Added key " << key_id << " (" << ref << ") to keyring " << device_keyring
-               << " in process " << getpid() << "\n";
+               << " in process " << getpid() << std::endl;
     return true;
 }
 
 static std::string get_de_key_path(userid_t user_id) {
-LOG(INFO) << "get_de_key_path " << user_id << " " << StringPrintf("%s/de/%d", user_key_dir.c_str(), user_id) << "\n";
+LOG(INFO) << "get_de_key_path " << user_id << " " << StringPrintf("%s/de/%d", user_key_dir.c_str(), user_id) << std::endl;
     return StringPrintf("%s/de/%d", user_key_dir.c_str(), user_id);
 }
 
 static std::string get_ce_key_directory_path(userid_t user_id) {
-LOG(INFO) << "get_ce_key_directory_path " << user_id << ": " << StringPrintf("%s/ce/%d", user_key_dir.c_str(), user_id) << "\n";
+LOG(INFO) << "get_ce_key_directory_path " << user_id << ": " << StringPrintf("%s/ce/%d", user_key_dir.c_str(), user_id) << std::endl;
     return StringPrintf("%s/ce/%d", user_key_dir.c_str(), user_id);
 }
 
@@ -230,7 +230,7 @@ static std::vector<std::string> get_ce_key_paths(const std::string& directory_pa
             continue;
         }
         result.emplace_back(directory_path + "/" + entry->d_name);
-        LOG(INFO) << "get_ce_key_paths adding: " << directory_path + "/" + entry->d_name << "\n";
+        LOG(INFO) << "get_ce_key_paths adding: " << directory_path + "/" + entry->d_name << std::endl;
     }
     std::sort(result.begin(), result.end());
     std::reverse(result.begin(), result.end());
@@ -291,7 +291,7 @@ static bool read_and_install_user_ce_key(userid_t user_id,
 }
 
 static bool prepare_dir(const std::string& dir, mode_t mode, uid_t uid, gid_t gid) {
-    LOG(DEBUG) << "Preparing: " << dir << "\n";
+    LOG(DEBUG) << "Preparing: " << dir << std::endl;
     return true;
     return access(dir.c_str(), F_OK) == 0; // we don't want recovery creating directories or changing permissions at this point, so we will just return true if the path already exists
     if (fs_prepare_dir(dir.c_str(), mode, uid, gid) != 0) {
@@ -320,7 +320,7 @@ static bool ensure_policy(const std::string& raw_ref __unused, const std::string
     return true;
     // ensure policy will set a policy if one is not set on an empty folder - we don't want to do this in recovery
     /*if (e4crypt_policy_ensure(path.c_str(), raw_ref.data(), raw_ref.size()) != 0) {
-        LOG(ERROR) << "Failed to set policy on: " << path << "\n";
+        LOG(ERROR) << "Failed to set policy on: " << path << std::endl;
         return false;
     }
     return true;*/

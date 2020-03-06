@@ -101,7 +101,7 @@ static bool read_key(const std::string& key_dir, bool create_if_absent, KeyBuffe
     }
     std::string key_dir = data_rec->key_dir;*/
     auto dir = key_dir + "/key";
-    LOG(DEBUG) << "key_dir/key: " << dir << "\n";
+    LOG(DEBUG) << "key_dir/key: " << dir << std::endl;
     /*if (fs_mkdirs(dir.c_str(), 0700)) {
         PLOG(ERROR) << "Creating directories: " << dir;
         return false;
@@ -132,7 +132,7 @@ static bool get_number_of_sectors(const std::string& real_blkdev, uint64_t *nr_s
     // TODO: should use BLKGETSIZE64
     get_blkdev_size(dev_fd.get(), &res);
     if (res == 0) {
-        PLOG(ERROR) << "Unable to measure size of " << real_blkdev << "\n";
+        PLOG(ERROR) << "Unable to measure size of " << real_blkdev << std::endl;
         return false;
     }
     *nr_sec = res;
@@ -171,14 +171,14 @@ static bool create_crypto_blk_dev(const std::string& dm_name, uint64_t nr_sec,
     alignas(struct dm_ioctl) char buffer[DM_CRYPT_BUF_SIZE];
     auto io = dm_ioctl_init(buffer, sizeof(buffer), dm_name);
     if (!io || ioctl(dm_fd.get(), DM_DEV_CREATE, io) != 0) {
-        PLOG(ERROR) << "Cannot create dm-crypt device " << dm_name << "\n";
+        PLOG(ERROR) << "Cannot create dm-crypt device " << dm_name << std::endl;
         return false;
     }
 
     // Get the device status, in particular, the name of its device file
     io = dm_ioctl_init(buffer, sizeof(buffer), dm_name);
     if (ioctl(dm_fd.get(), DM_DEV_STATUS, io) != 0) {
-        PLOG(ERROR) << "Cannot retrieve dm-crypt device status " << dm_name << "\n";
+        PLOG(ERROR) << "Cannot retrieve dm-crypt device status " << dm_name << std::endl;
         return false;
     }
     *crypto_blkdev = std::string() + "/dev/block/dm-" + std::to_string(
@@ -220,14 +220,14 @@ static bool create_crypto_blk_dev(const std::string& dm_name, uint64_t nr_sec,
     // Resume this device to activate it
     io = dm_ioctl_init(buffer, sizeof(buffer), dm_name);
     if (ioctl(dm_fd.get(), DM_DEV_SUSPEND, io)) {
-        PLOG(ERROR) << "Cannot resume dm-crypt device " << dm_name << "\n";
+        PLOG(ERROR) << "Cannot resume dm-crypt device " << dm_name << std::endl;
         return false;
     }
     return true;
 }
 
 bool e4crypt_mount_metadata_encrypted(const std::string& mount_point, bool needs_encrypt, const std::string& key_dir, const std::string& blk_device, std::string* crypto_blkdev) {
-    LOG(DEBUG) << "e4crypt_mount_metadata_encrypted: " << mount_point << " " << needs_encrypt << "\n";
+    LOG(DEBUG) << "e4crypt_mount_metadata_encrypted: " << mount_point << " " << needs_encrypt << std::endl;
     /*auto encrypted_state = android::base::GetProperty("ro.crypto.state", "");
     if (encrypted_state != "") {
         LOG(DEBUG) << "e4crypt_enable_crypto got unexpected starting state: " << encrypted_state;
@@ -266,6 +266,6 @@ bool e4crypt_mount_metadata_encrypted(const std::string& mount_point, bool needs
 
     LOG(DEBUG) << "Mounting metadata-encrypted filesystem:" << mount_point;
     mount_via_fs_mgr(data_rec->mount_point, crypto_blkdev.c_str());*/
-    LOG(DEBUG) << "crypto block device '" << *crypto_blkdev << "\n";
+    LOG(DEBUG) << "crypto block device '" << *crypto_blkdev << std::endl;
     return true;
 }
