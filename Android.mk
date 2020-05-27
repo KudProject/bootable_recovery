@@ -415,7 +415,7 @@ ifneq ($(TW_OVERRIDE_SYSTEM_PROPS),)
     TW_INCLUDE_LIBRESETPROP := true
     LOCAL_CFLAGS += -DTW_OVERRIDE_SYSTEM_PROPS=$(TW_OVERRIDE_SYSTEM_PROPS)
 endif
-ifneq ($(TW_INCLUDE_LIBRESETPROP),)
+ifeq ($(TW_INCLUDE_LIBRESETPROP),true)
     ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 24; echo $$?),0)
         $(warning libresetprop is not available for android < 7)
     else
