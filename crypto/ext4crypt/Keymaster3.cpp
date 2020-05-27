@@ -56,12 +56,12 @@ bool KeymasterOperation::updateCompletely(const std::string& input, std::string*
         auto inputBlob = blob2hidlVec(reinterpret_cast<const uint8_t*>(&*it), toRead);
         auto error = mDevice->update(mOpHandle, hidl_vec<KeyParameter>(), inputBlob, hidlCB);
         if (!error.isOk()) {
-            LOG(ERROR) << "update failed: " << error.description() << "\n";
+            LOG(ERROR) << "update failed: " << error.description() << std::endl;
             mDevice = nullptr;
             return false;
         }
         if (km_error != ErrorCode::OK) {
-            LOG(ERROR) << "update failed, code " << int32_t(km_error) << "\n";
+            LOG(ERROR) << "update failed, code " << int32_t(km_error) << std::endl;
             mDevice = nullptr;
             return false;
         }
@@ -88,11 +88,11 @@ bool KeymasterOperation::finish(std::string* output) {
             hidl_vec<uint8_t>(), hidlCb);
     mDevice = nullptr;
     if (!error.isOk()) {
-        LOG(ERROR) << "finish failed: " << error.description() << "\n";
+        LOG(ERROR) << "finish failed: " << error.description() << std::endl;
         return false;
     }
     if (km_error != ErrorCode::OK) {
-        LOG(ERROR) << "finish failed, code " << int32_t(km_error) << "\n";
+        LOG(ERROR) << "finish failed, code " << int32_t(km_error) << std::endl;
         return false;
     }
     return true;
@@ -114,11 +114,11 @@ Keymaster::Keymaster() {
 
     auto error = mDevice->generateKey(inParams.hidl_data(), hidlCb);
     if (!error.isOk()) {
-        LOG(ERROR) << "generate_key failed: " << error.description() << "\n";
+        LOG(ERROR) << "generate_key failed: " << error.description() << std::endl;
         return false;
     }
     if (km_error != ErrorCode::OK) {
-        LOG(ERROR) << "generate_key failed, code " << int32_t(km_error) << "\n";
+        LOG(ERROR) << "generate_key failed, code " << int32_t(km_error) << std::endl;
         return false;
     }
     return true;
@@ -130,11 +130,11 @@ bool Keymaster::deleteKey(const std::string& key) {
     /*auto keyBlob = blob2hidlVec(key);
     auto error = mDevice->deleteKey(keyBlob);
     if (!error.isOk()) {
-        LOG(ERROR) << "delete_key failed: " << error.description() << "\n";
+        LOG(ERROR) << "delete_key failed: " << error.description() << std::endl;
         return false;
     }
     if (ErrorCode(error) != ErrorCode::OK) {
-        LOG(ERROR) << "delete_key failed, code " << uint32_t(ErrorCode(error)) << "\n";
+        LOG(ERROR) << "delete_key failed, code " << uint32_t(ErrorCode(error)) << std::endl;
         return false;
     }
     return true;*/
@@ -153,11 +153,11 @@ bool Keymaster::upgradeKey(const std::string& oldKey, const AuthorizationSet& in
     };
     auto error = mDevice->upgradeKey(oldKeyBlob, inParams.hidl_data(), hidlCb);
     if (!error.isOk()) {
-        LOG(ERROR) << "upgrade_key failed: " << error.description() << "\n";
+        LOG(ERROR) << "upgrade_key failed: " << error.description() << std::endl;
         return false;
     }
     if (km_error != ErrorCode::OK) {
-        LOG(ERROR) << "upgrade_key failed, code " << int32_t(km_error) << "\n";
+        LOG(ERROR) << "upgrade_key failed, code " << int32_t(km_error) << std::endl;
         return false;
     }
     return true;
@@ -322,18 +322,18 @@ int keymaster_sign_object_for_cryptfs_scrypt(const uint8_t* key_blob,
     }
 
     if (op.errorCode() != ErrorCode::OK) {
-        LOG(ERROR) << "Error starting keymaster signature transaction: " << int32_t(op.errorCode()) << "\n";
+        LOG(ERROR) << "Error starting keymaster signature transaction: " << int32_t(op.errorCode()) << std::endl;
         return -1;
     }
 
     if (!op.updateCompletely(input, &output)) {
         LOG(ERROR) << "Error sending data to keymaster signature transaction: "
-                   << uint32_t(op.errorCode()) << "\n";
+                   << uint32_t(op.errorCode()) << std::endl;
         return -1;
     }
 
     if (!op.finish(&output)) {
-        LOG(ERROR) << "Error finalizing keymaster signature transaction: " << int32_t(op.errorCode()) << "\n";
+        LOG(ERROR) << "Error finalizing keymaster signature transaction: " << int32_t(op.errorCode()) << std::endl;
         return -1;
     }
 
