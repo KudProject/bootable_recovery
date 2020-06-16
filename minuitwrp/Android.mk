@@ -10,6 +10,13 @@ LOCAL_SRC_FILES := \
     graphics_utils.cpp \
     events.cpp
 
+ifeq ($(TW_SUPPORT_INPUT_1_2_HAPTICS),true)
+    ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 28; echo $$?),0)
+        LOCAL_SHARED_LIBRARIES += android.hardware.vibrator@1.2 libhidlbase
+        LOCAL_CFLAGS += -DUSE_QTI_HAPTICS
+    endif
+endif
+
 ifneq ($(TW_BOARD_CUSTOM_GRAPHICS),)
     $(warning ****************************************************************************)
     $(warning * TW_BOARD_CUSTOM_GRAPHICS support has been deprecated in TWRP.            *)
@@ -196,6 +203,11 @@ endif
 
 ifneq ($(TW_WHITELIST_INPUT),)
   LOCAL_CFLAGS += -DWHITELIST_INPUT=$(TW_WHITELIST_INPUT)
+endif
+
+ifeq ($(TW_HAPTICS_TSPDRV), true)
+  LOCAL_SRC_FILES += tspdrv.cpp
+  LOCAL_CFLAGS += -DTW_HAPTICS_TSPDRV
 endif
 
 ifeq ($(TW_DISABLE_TTF), true)

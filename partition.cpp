@@ -422,7 +422,10 @@ bool TWPartition::Process_Fstab_Line(const char *fstab_line, bool Display_Error,
 		else
 			return true;
 	} else if (Mount_Point == "auto") {
-		Mount_Point = "/auto" + to_string(auto_index);
+		Mount_Point = "/auto";
+		char autoi[5];
+		sprintf(autoi, "%i", auto_index);
+		Mount_Point += autoi;
 		Backup_Path = Mount_Point;
 		Storage_Path = Mount_Point;
 		Backup_Name = Mount_Point.substr(1);
@@ -720,10 +723,10 @@ void TWPartition::Setup_Data_Partition(bool Display_Error) {
 
 bool TWPartition::Decrypt_FBE_DE() {
 if (TWFunc::Path_Exists("/data/unencrypted/key/version")) {
+		DataManager::SetValue(TW_IS_FBE, 1);
 		LOGINFO("File Based Encryption is present\n");
 #ifdef TW_INCLUDE_FBE
 	Is_FBE = true;
-	DataManager::SetValue(TW_IS_FBE, 1);
 	ExcludeAll(Mount_Point + "/convert_fbe");
 	ExcludeAll(Mount_Point + "/unencrypted");
 	ExcludeAll(Mount_Point + "/misc/vold/user_keys");
@@ -741,18 +744,6 @@ if (TWFunc::Path_Exists("/data/unencrypted/key/version")) {
 	int retry_count = 3;
 	while (!Decrypt_DE() && --retry_count)
 		usleep(2000);
-	PartitionManager.Parse_Users();  // after load_all_de_keys() to parse_users
-	std::vector<users_struct>::iterator iter;
-	std::vector<users_struct>* userList = PartitionManager.Get_Users_List();
-	for (iter = userList->begin(); iter != userList->end(); iter++) {
-		if (atoi((*iter).userId.c_str()) != 0) {
-			ExcludeAll(Mount_Point + "/system_de/" + (*iter).userId + "/spblob");
-			ExcludeAll(Mount_Point + "/system/users/" + (*iter).userId + "/gatekeeper.password.key");
-			ExcludeAll(Mount_Point + "/system/users/" + (*iter).userId + "/gatekeeper.pattern.key");
-			ExcludeAll(Mount_Point + "/system/users/" + (*iter).userId + "/locksettings.db");
-			ExcludeAll(Mount_Point + "/system/users/" + (*iter).userId + "/locksettings.db-wal");
-		}
-	}
 	if (retry_count > 0) {
 		property_set("ro.crypto.state", "encrypted");
 		Is_Encrypted = true;
@@ -764,6 +755,18 @@ if (TWFunc::Path_Exists("/data/unencrypted/key/version")) {
 			LOGERR("This TWRP does not have synthetic password decrypt support\n");
 			pwd_type = 0;  // default password
 		}
+		PartitionManager.Parse_Users();  // after load_all_de_keys() to parse_users
+		std::vector<users_struct>::iterator iter;
+		std::vector<users_struct>* userList = PartitionManager.Get_Users_List();
+		for (iter = userList->begin(); iter != userList->end(); iter++) {
+			if (atoi((*iter).userId.c_str()) != 0) {
+				ExcludeAll(Mount_Point + "/system_de/" + (*iter).userId + "/spblob");
+				ExcludeAll(Mount_Point + "/system/users/" + (*iter).userId + "/gatekeeper.password.key");
+				ExcludeAll(Mount_Point + "/system/users/" + (*iter).userId + "/gatekeeper.pattern.key");
+				ExcludeAll(Mount_Point + "/system/users/" + (*iter).userId + "/locksettings.db");
+				ExcludeAll(Mount_Point + "/system/users/" + (*iter).userId + "/locksettings.db-wal");
+			}
+		}
 		DataManager::SetValue(TW_CRYPTO_PWTYPE, pwd_type);
 		DataManager::SetValue("tw_crypto_pwtype_0", pwd_type);
 		DataManager::SetValue(TW_CRYPTO_PASSWORD, "");
@@ -774,6 +777,7 @@ if (TWFunc::Path_Exists("/data/unencrypted/key/version")) {
 		LOGERR("FBE found but FBE support not present in TWRP\n");
 #endif
 	}
+	DataManager::SetValue(TW_IS_FBE, 0);
 	return false;
 }
 
