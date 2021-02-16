@@ -112,6 +112,14 @@ TWPartitionManager::TWPartitionManager(void) {
 #endif
 }
 
+int TWPartitionManager::Set_FDE_Encrypt_Status(void) {
+	property_set("ro.crypto.state", "encrypted");
+	property_set("ro.crypto.type", "block");
+	// Sleep for a bit so that services can start if needed
+	sleep(1);
+	return 0;
+}
+
 int TWPartitionManager::Process_Fstab(string Fstab_Filename, bool Display_Error, bool Sar_Detect) {
 	FILE *fstabFile;
 	char fstab_line[MAX_FSTAB_LINE_LENGTH];
@@ -294,11 +302,12 @@ int TWPartitionManager::Process_Fstab(string Fstab_Filename, bool Display_Error,
 #ifdef TW_INCLUDE_CRYPTO
 	TWPartition* Decrypt_Data = Find_Partition_By_Path("/data");
 	if (Decrypt_Data && Decrypt_Data->Is_Encrypted && !Decrypt_Data->Is_Decrypted) {
+		property_set("ro.crypto.state", "encrypted");
 		if (!Decrypt_Data->Key_Directory.empty() && Mount_By_Path(Decrypt_Data->Key_Directory, false)) {
+		property_set("ro.crypto.type", "file");
 #ifdef TW_INCLUDE_FBE_METADATA_DECRYPT
 			if (e4crypt_mount_metadata_encrypted(Decrypt_Data->Mount_Point, false, Decrypt_Data->Key_Directory, Decrypt_Data->Actual_Block_Device, &Decrypt_Data->Decrypted_Block_Device)) {
 				LOGINFO("Successfully decrypted metadata encrypted data partition with new block device: '%s'\n", Decrypt_Data->Decrypted_Block_Device.c_str());
-				property_set("ro.crypto.state", "encrypted");
 				Decrypt_Data->Is_Decrypted = true; // Needed to make the mount function work correctly
 				int retry_count = 10;
 				while (!Decrypt_Data->Mount(false) && --retry_count)
@@ -339,6 +348,7 @@ int TWPartitionManager::Process_Fstab(string Fstab_Filename, bool Display_Error,
 				}
 			}
 		} else {
+			Set_FDE_Encrypt_Status();
 			int password_type = cryptfs_get_password_type();
 			if (password_type == CRYPT_TYPE_DEFAULT) {
 				LOGINFO("Device is encrypted with the default password, attempting to decrypt.\n");
@@ -1118,6 +1128,10 @@ int TWPartitionManager::Run_Restore(const string& Restore_Name) {
 
 				string Full_Filename = part_settings.Backup_Folder + "/" + part_settings.Part->Backup_FileName;
 
+				if (tw_get_default_metadata(Get_Android_Root_Path().c_str()) != 0) {
+					gui_msg(Msg(msg::kWarning, "restore_system_context=Unable to get default context for {1} -- Android may not boot.")(Get_Android_Root_Path()));
+				}
+
 				if (check_digest > 0 && !twrpDigestDriver::Check_Digest(Full_Filename))
 					return false;
 				part_settings.partition_count++;
@@ -1173,6 +1187,7 @@ int TWPartitionManager::Run_Restore(const string& Restore_Name) {
 		}
 	}
 	TWFunc::GUI_Operation_Text(TW_UPDATE_SYSTEM_DETAILS_TEXT, gui_parse_text("{@updating_system_details}"));
+	tw_set_default_metadata(Get_Android_Root_Path().c_str());
 	UnMount_By_Path(Get_Android_Root_Path(), false);
 	Update_System_Details();
 	UnMount_Main_Partitions();
@@ -1795,10 +1810,7 @@ int TWPartitionManager::Decrypt_Device(string Password, int user_id) {
 
 	property_get("ro.crypto.state", crypto_state, "error");
 	if (strcmp(crypto_state, "error") == 0) {
-		property_set("ro.crypto.state", "encrypted");
-		property_set("ro.crypto.type", "block");
-		// Sleep for a bit so that services can start if needed
-		sleep(1);
+		Set_FDE_Encrypt_Status();
 	}
 
 	if (DataManager::GetIntValue(TW_IS_FBE)) {
@@ -2875,6 +2887,16 @@ bool TWPartitionManager::Decrypt_Adopted() {
 	}
 	std::vector<TWPartition*>::iterator adopt;
 	for (adopt = Partitions.begin(); adopt != Partitions.end(); adopt++) {
+		if ((*adopt)->Removable && !(*adopt)->Is_Present && (*adopt)->Adopted_Mount_Delay > 0) {
+			// On some devices, the external mmc driver takes some time
+			// to recognize the card, in which case the "actual block device"
+			// would not have been found yet. We wait the specified delay
+			// and then try again.
+			LOGINFO("Sleeping %d seconds for adopted storage.\n", (*adopt)->Adopted_Mount_Delay);
+			sleep((*adopt)->Adopted_Mount_Delay);
+			(*adopt)->Find_Actual_Block_Device();
+		}
+
 		if ((*adopt)->Removable && (*adopt)->Is_Present) {
 			if ((*adopt)->Decrypt_Adopted() == 0) {
 				ret = true;

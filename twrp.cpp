@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
 
 		rmdir("/s");
 
-		TWFunc::check_and_run_script("/sbin/sarsetup.sh", "boot");
+		TWFunc::check_and_run_script("/sbin/sarsetup.sh", "SAR");
 	}
 	// End SAR detection
 
@@ -396,6 +396,8 @@ int main(int argc, char **argv) {
 #endif
 	twrpAdbBuFifo *adb_bu_fifo = new twrpAdbBuFifo();
 	adb_bu_fifo->threadAdbBuFifo();
+
+	TWFunc::checkforapp(); //Checking compatibility for TWRP app
 
 	// Launch the main GUI
 	gui_start();

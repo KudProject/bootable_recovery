@@ -82,7 +82,6 @@ endif
 
 ifeq ($(TWRP_INCLUDE_LOGCAT), true)
     ifeq ($(TARGET_USES_LOGD), true)
-
         include $(CLEAR_VARS)
         LOCAL_MODULE := init.recovery.logd.rc
         LOCAL_MODULE_TAGS := eng
