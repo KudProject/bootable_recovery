@@ -382,7 +382,7 @@ ifeq ($(shell test $(PLATFORM_SDK_VERSION) -gt 25; echo $$?),0)
     ifneq ($(wildcard system/core/libkeyutils/Android.bp),)
         RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libkeyutils.so
     endif
-    ifeq ($(wildcard system/libhidl/transport/HidlTransportUtils.cpp),)
+    ifneq ($(wildcard system/libhidl/transport/HidlTransportUtils.cpp),)
         RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/android.hidl.base@1.0.so
     endif
 endif
