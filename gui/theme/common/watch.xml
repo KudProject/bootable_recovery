@@ -399,6 +399,7 @@
 				<placement x="%indent%" y="%row2_header_y%" w="%content_width%" h="%fileselector_install_height%"/>
 				<text>%tw_zip_location%</text>
 				<filter extn=".zip;.ozip;.ZIP;.OZIP" folders="1" files="1"/>
+				<prfxfilter prfx="Magisk-;Magisk.apk;app-release.apk;app-debug.apk" folders="1" files="1"/>
 				<path name="tw_zip_location" default="/sdcard"/>
 				<data name="tw_filename"/>
 				<selection name="tw_file"/>
@@ -441,7 +442,10 @@
 					<condition var1="tw_selectimage" var2="1"/>
 					<condition var1="tw_filename" op="modified"/>
 				</conditions>
-				<action function="page">flashimage_type</action>
+				<actions>
+					<action function="set">tw_is_slot_part=0</action>
+					<action function="page">flashimage_type</action>
+				</actions>
 			</action>
 
 			<action>
@@ -858,6 +862,30 @@
 				<data name="tw_flash_partition"/>
 				<listtype name="flashimg"/>
 			</partitionlist>
+
+			<button style="checkbox">
+				<conditions>
+					<condition var1="tw_is_slot_part" op="=" var2="1"/>
+					<condition var1="tw_flash_both_slots" op="=" var2="0"/>
+					<condition var1="tw_has_boot_slots" var2="1"/>
+				</conditions>
+				<placement x="%col2_x_left%" y="%row11_y%" textplacement="6"/>
+				<text>{@flash_ab_both_slots=Flash to both slots}</text>
+				<image resource="checkbox_false"/>
+				<action function="set">tw_flash_both_slots=1</action>
+			</button>
+
+			<button style="checkbox">
+				<conditions>
+					<condition var1="tw_is_slot_part" op="=" var2="1"/>
+					<condition var1="tw_flash_both_slots" op="=" var2="1"/>
+					<condition var1="tw_has_boot_slots" var2="1"/>
+				</conditions>
+				<placement x="%col2_x_left%" y="%row11_y%" textplacement="6"/>
+				<text>{@flash_ab_both_slots=Flash to both slots}</text>
+				<image resource="checkbox_true"/>
+				<action function="set">tw_flash_both_slots=0</action>
+			</button>
 
 			<button>
 				<placement x="%col1_x_left%" y="%row11_y%"/>
@@ -4225,6 +4253,10 @@
 
 			<listbox style="advanced_listbox">
 				<placement x="%indent%" y="%row2_header_y%" w="%content_width%" h="%fileselector_install_height%"/>
+				<listitem name="{@change_twrp_folder_btn=Change TWRP folder}">
+					<condition var1="tw_is_encrypted" var2="0"/>
+					<action function="page">changeTwrpFolder</action>
+				</listitem>
 				<listitem name="{@decrypt_users=Decrypt Users}">
 					<conditions>
 						<condition var1="tw_is_fbe" var2="1"/>
@@ -5848,6 +5880,100 @@
 			<action>
 				<touch key="back"/>
 				<action function="page">advanced</action>
+			</action>
+		</page>
+
+		<page name="changeTwrpFolder">
+			<template name="page"/>
+
+			<template name="statusbar"/>
+
+			<text style="text_m">
+				<placement x="%col1_x_left%" y="%row1_header_y%"/>
+				<text>{@change_twrp_folder_btn=Change TWRP folder}</text>
+			</text>
+
+			<text style="text_m_accent">
+				<placement x="%col1_x_left%" y="%row1_y%"/>
+				<text>{@name=Name:}</text>
+			</text>
+
+			<input>
+				<placement x="%col1_x_left%" y="%row2_y%" w="%content_width%" h="%input_height%"/>
+				<text>%tw_custom_folder%</text>
+				<data name="tw_custom_folder"/>
+				<restrict minlen="1" maxlen="64" allow="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"/>
+				<actions>
+					<action function="set">tw_back=changeTwrpFolder</action>
+					<action function="set">tw_action=applycustomtwrpfolder</action>
+					<action function="set">tw_action_param=%tw_custom_folder%</action>
+					<action function="set">tw_text1={@confirm_action=Confirm}</action>
+					<action function="set">tw_text2={@rename_backup_confirm2=This cannot be undone!}</action>
+					<action function="set">tw_action_text1={@change_twrp_folder_on_process=Changing TWRP folder}</action>
+					<action function="set">tw_complete_text1={@change_twrp_folder_after_process=TWRP folder changed to} %tw_custom_folder%</action>
+					<action function="set">tw_slider_text={@swipe_to_confirm=Swipe to Confirm}</action>
+					<action function="set">tw_filecheck=/sdcard/%tw_custom_folder%</action>
+					<action function="set">tw_existpage=changeTwrpFolder</action>
+					<action function="set">tw_notexistpage=confirm_action</action>
+					<action function="page">filecheck</action>
+				</actions>
+			</input>
+
+			<fill color="%accent_color%">
+				<placement x="%col1_x_left%" y="%row3_input_y%" w="%content_width%" h="%input_line_width%" placement="1"/>
+			</fill>
+
+			<fill color="%text_fail_color%">
+				<condition var1="tw_fileexists" var2="1"/>
+				<placement x="%col1_x_left%" y="%row3_input_y%" w="%content_width%" h="%input_line_width%" placement="1"/>
+			</fill>
+
+			<text style="text_m_fail">
+				<condition var1="tw_fileexists" var2="1"/>
+				<placement x="%col1_x_left%" y="%row3_input_y%"/>
+				<text>{@tw_folder_exists=A folder with that name already exists!}</text>
+			</text>
+
+			<button style="main_button_half_width_low">
+				<placement x="%col1_x_left%" y="%row4_y%"/>
+				<text>{@cancel_btn=Cancel}</text>
+				<action function="page">advanced2</action>
+			</button>
+
+			<button style="main_button_half_height">
+				<condition var1="tw_recovery_folder" op="!=" var2="/TWRP"/>
+				<placement x="%col1_x_right%" y="%row4_y%"/>
+				<text>{@restore_defaults_btn=Restore Defaults}</text>
+				<actions>
+					<action function="set">tw_back=changeTwrpFolder</action>
+					<action function="set">tw_action=applycustomtwrpfolder</action>
+					<action function="set">tw_action_param=TWRP</action>
+					<action function="set">tw_text1={@confirm_action=Confirm}</action>
+					<action function="set">tw_text2={@rename_backup_confirm2=This cannot be undone!}</action>
+					<action function="set">tw_action_text1={@change_twrp_folder_on_process=Changing TWRP folder}</action>
+					<action function="set">tw_complete_text1={@change_twrp_folder_after_process=TWRP folder changed to} TWRP</action>
+					<action function="set">tw_slider_text={@swipe_to_confirm=Swipe to Confirm}</action>
+					<action function="set">tw_filecheck=/sdcard/TWRP</action>
+					<action function="set">tw_existpage=changeTwrpFolder</action>
+					<action function="set">tw_notexistpage=confirm_action</action>
+					<action function="page">filecheck</action>
+				</actions>
+			</button>
+
+			<template name="keyboardtemplate"/>
+
+			<action>
+				<touch key="home"/>
+				<actions>
+					<action function="page">main</action>
+				</actions>
+			</action>
+
+			<action>
+				<touch key="back"/>
+				<actions>
+					<action function="page">advanced2</action>
+				</actions>
 			</action>
 		</page>
 	</pages>

@@ -408,6 +408,15 @@ ifeq ($(shell test $(PLATFORM_SDK_VERSION) -gt 27; echo $$?),0)
     RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/liblogwrap.so
     RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libext2_misc.so
 endif
+ifneq ($(TW_EXCLUDE_NANO), true)
+    RELINK_SOURCE_FILES += $(TARGET_OUT_OPTIONAL_EXECUTABLES)/nano
+    RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libncurses.so
+    RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libssh.so
+    RELINK_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libssl.so
+endif
+ifneq ($(TW_EXCLUDE_BASH), true)
+    RELINK_SOURCE_FILES += $(TARGET_OUT_OPTIONAL_EXECUTABLES)/bash
+endif
 
 TW_BB_SYMLINKS :=
 ifneq ($(TW_USE_TOOLBOX), true)
@@ -626,4 +635,51 @@ ifneq ($(TW_EXCLUDE_TZDATA), true)
             cp -f $(TARGET_OUT)/usr/share/zoneinfo/tzdata $(TARGET_RECOVERY_ROOT_OUT)/system/usr/share/zoneinfo/;
     endif
     include $(BUILD_PHONY_PACKAGE)
+endif
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := nano_twrp
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT)/sbin
+LOCAL_REQUIRED_MODULES := nano libncurses
+ifeq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE),true)
+    LOCAL_POST_INSTALL_CMD += \
+        mkdir -p $(TARGET_RECOVERY_ROOT_OUT)/system_root/system/etc/nano; \
+        cp -rf external/nano/etc/* external/nano/syntax/*.nanorc $(TARGET_RECOVERY_ROOT_OUT)/system_root/system/etc/nano/; \
+        cp -rf external/libncurses/lib/terminfo $(TARGET_RECOVERY_ROOT_OUT)/system_root/system/etc/;
+else
+    LOCAL_POST_INSTALL_CMD += \
+        mkdir -p $(TARGET_RECOVERY_ROOT_OUT)/system/etc/nano; \
+        cp -rf external/nano/etc/* external/nano/syntax/*.nanorc $(TARGET_RECOVERY_ROOT_OUT)/system/etc/nano/; \
+        cp -rf external/libncurses/lib/terminfo $(TARGET_RECOVERY_ROOT_OUT)/system/etc/;
+endif
+include $(BUILD_PHONY_PACKAGE)
+
+ifneq ($(TW_EXCLUDE_BASH), true)
+	include $(CLEAR_VARS)
+	LOCAL_MODULE := bash_twrp
+	LOCAL_MODULE_TAGS := optional
+	LOCAL_MODULE_CLASS := ETC
+	LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT)/sbin
+	LOCAL_REQUIRED_MODULES := bash
+
+    ifeq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE),true)
+        LOCAL_POST_INSTALL_CMD += \
+            mkdir -p $(TARGET_RECOVERY_ROOT_OUT)/system_root/system/etc/bash; \
+            cp -rf external/bash/etc/* $(TARGET_RECOVERY_ROOT_OUT)/system_root/system/etc/bash/; \
+            sed -i 's/ro.cm.device/ro.product.device/' $(TARGET_RECOVERY_ROOT_OUT)/system_root/system/etc/bash/bashrc; \
+            sed -i 's/ro.lineage.device/ro.product.device/' $(TARGET_RECOVERY_ROOT_OUT)/system_root/system/etc/bash/bashrc; \
+            sed -i 's/ro.omni.device/ro.product.device/' $(TARGET_RECOVERY_ROOT_OUT)/system_root/system/etc/bash/bashrc; \
+            sed -i '/export TERM/d' $(TARGET_RECOVERY_ROOT_OUT)/system_root/system/etc/bash/bashrc;
+    else
+        LOCAL_POST_INSTALL_CMD += \
+            mkdir -p $(TARGET_RECOVERY_ROOT_OUT)/system/etc/bash; \
+            cp -rf external/bash/etc/* $(TARGET_RECOVERY_ROOT_OUT)/system/etc/bash/; \
+            sed -i 's/ro.cm.device/ro.product.device/' $(TARGET_RECOVERY_ROOT_OUT)/system/etc/bash/bashrc; \
+            sed -i 's/ro.lineage.device/ro.product.device/' $(TARGET_RECOVERY_ROOT_OUT)/system/etc/bash/bashrc; \
+            sed -i 's/ro.omni.device/ro.product.device/' $(TARGET_RECOVERY_ROOT_OUT)/system/etc/bash/bashrc; \
+            sed -i '/export TERM/d' $(TARGET_RECOVERY_ROOT_OUT)/system/etc/bash/bashrc;
+    endif
+	include $(BUILD_PHONY_PACKAGE)
 endif

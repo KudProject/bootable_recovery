@@ -64,6 +64,7 @@ static string zip_queue[10];
 static int zip_queue_index;
 pid_t sideload_child_pid;
 extern std::vector<users_struct> Users_List;
+extern GUITerminal* term;
 
 static void *ActionThread_work_wrapper(void *data);
 
@@ -200,6 +201,7 @@ GUIAction::GUIAction(xml_node<>* node)
 		ADD_ACTION(setlanguage);
 		ADD_ACTION(checkforapp);
 		ADD_ACTION(togglebacklight);
+		ADD_ACTION(changeterminal);
 
 		// remember actions that run in the caller thread
 		for (mapFunc::const_iterator it = mf.begin(); it != mf.end(); ++it)
@@ -235,6 +237,10 @@ GUIAction::GUIAction(xml_node<>* node)
 		ADD_ACTION(uninstalltwrpsystemapp);
 		ADD_ACTION(repackimage);
 		ADD_ACTION(fixabrecoverybootloop);
+		ADD_ACTION(applycustomtwrpfolder);
+#ifndef TW_EXCLUDE_NANO
+		ADD_ACTION(editfile);
+#endif
 	}
 
 	// First, get the action
@@ -392,7 +398,7 @@ int GUIAction::flash_zip(std::string filename, int* wipe_cache)
 	if (simulate) {
 		simulate_progress_bar();
 	} else {
-		ret_val = TWinstall_zip(filename.c_str(), wipe_cache);
+		ret_val = TWinstall_zip(filename.c_str(), wipe_cache, (bool) DataManager::GetIntValue(TW_SKIP_DIGEST_CHECK_VAR));
 
 		// Now, check if we need to ensure TWRP remains installed...
 		struct stat st;
@@ -1811,16 +1817,41 @@ int GUIAction::stopmtp(std::string arg __unused)
 int GUIAction::flashimage(std::string arg __unused)
 {
 	int op_status = 0;
+	bool flag = true;
 
 	operation_start("Flash Image");
 	string path, filename;
 	DataManager::GetValue("tw_zip_location", path);
 	DataManager::GetValue("tw_file", filename);
-	if (PartitionManager.Flash_Image(path, filename))
-		op_status = 0; // success
-	else
-		op_status = 1; // fail
 
+#ifdef AB_OTA_UPDATER
+	string target = DataManager::GetStrValue("tw_flash_partition");
+	unsigned int pos = target.find_last_of(';');
+	string mount_point = pos != string::npos ? target.substr(0, pos) : "";
+	TWPartition* t_part = PartitionManager.Find_Partition_By_Path(mount_point);
+	bool flash_in_both_slots = DataManager::GetIntValue("tw_flash_both_slots") ? true : false;
+
+	if (t_part != NULL && (flash_in_both_slots && t_part->SlotSelect)) 
+	{
+		string current_slot = PartitionManager.Get_Active_Slot_Display();
+		bool pre_op_status = PartitionManager.Flash_Image(path, filename);
+
+		PartitionManager.Set_Active_Slot(current_slot == "A" ? "B" : "A");
+		op_status = (int) !(pre_op_status && PartitionManager.Flash_Image(path, filename));
+		PartitionManager.Set_Active_Slot(current_slot);
+
+		DataManager::SetValue("tw_flash_both_slots", 0);
+		flag = false;
+	}
+#endif
+	if (flag)
+	{
+		if (PartitionManager.Flash_Image(path, filename))
+			op_status = 0; // success
+		else
+			op_status = 1; // fail
+	}
+	
 	operation_end(op_status);
 	return 0;
 }
@@ -2216,5 +2247,83 @@ int GUIAction::fixabrecoverybootloop(std::string arg __unused)
 	op_status = 0;
 exit:
 	operation_end(op_status);
+	return 0;
+}
+
+int GUIAction::changeterminal(std::string arg) {
+	bool res = true;
+	std::string resp, cmd = "cd " + arg;
+	DataManager::GetValue("tw_terminal_location", resp);
+	if (arg.empty() && !resp.empty()) {
+		cmd = "cd /";
+		for (uint8_t iter = 0; iter < cmd.size(); iter++)
+			term->NotifyCharInput(cmd.at(iter));
+		term->NotifyCharInput(13);
+		DataManager::SetValue("tw_terminal_location", "");
+		return 0;
+	}
+	if (term != NULL && !arg.empty()) {
+		DataManager::SetValue("tw_terminal_location", arg);
+		if (term->status()) {
+			for (uint8_t iter = 0; iter < cmd.size(); iter++)
+				term->NotifyCharInput(cmd.at(iter));
+			term->NotifyCharInput(13);
+		}
+		else if (chdir(arg.c_str()) != 0) {
+			LOGINFO("Unable to change dir to %s\n", arg.c_str());
+			res = false;
+		}
+	}
+	else {
+		res = false;
+		LOGINFO("Unable to switch to Terminal\n");
+	}
+	if (res)
+		gui_changePage("terminalcommand");
+	return 0;
+}
+#ifndef TW_EXCLUDE_NANO
+int GUIAction::editfile(std::string arg) {
+	if (term != NULL) {
+		for (uint8_t iter = 0; iter < arg.size(); iter++)
+			term->NotifyCharInput(arg.at(iter));
+		term->NotifyCharInput(13);
+	}
+	else
+		LOGINFO("Unable to switch to Terminal\n");
+	return 0;
+}
+#endif
+
+int GUIAction::applycustomtwrpfolder(string arg __unused)
+{
+	operation_start("ChangingTWRPFolder");
+	string storageFolder = DataManager::GetSettingsStoragePath();
+	string newFolder = storageFolder + '/' + arg;
+	string newBackupFolder = newFolder + "/BACKUPS/" + DataManager::GetStrValue("device_id");
+	string prevFolder = storageFolder + DataManager::GetStrValue(TW_RECOVERY_FOLDER_VAR);
+	bool ret = false;
+
+	if (TWFunc::Path_Exists(newFolder)) {
+		gui_msg(Msg(msg::kError, "tw_folder_exists=A folder with that name already exists!"));
+	} else {
+		ret = true;
+	}
+
+	if (newFolder != prevFolder && ret) {
+		ret = TWFunc::Exec_Cmd("mv -f \"" + prevFolder + "\" \"" + newFolder + '\"') != 0 ? false : true;
+	} else {
+		gui_msg(Msg(msg::kError, "tw_folder_exists=A folder with that name already exists!"));
+	}
+
+	if (ret) ret = TWFunc::Recursive_Mkdir(newBackupFolder) ? true : false;
+
+
+	if (ret) {
+		DataManager::SetValue(TW_RECOVERY_FOLDER_VAR, '/' + arg);
+		DataManager::SetValue(TW_BACKUPS_FOLDER_VAR, newBackupFolder);
+		DataManager::mBackingFile = newFolder + '/' + TW_SETTINGS_FILE;
+	}
+	operation_end((int)!ret);
 	return 0;
 }
